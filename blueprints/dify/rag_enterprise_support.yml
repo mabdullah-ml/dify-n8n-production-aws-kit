@@ -1,0 +1,41 @@
+app:
+  name: "Enterprise Knowledge-Base RAG Support Chatflow"
+  mode: "advanced-chat"
+  description: "Grounded customer/internal support chatflow with confidence routing and HITL escalation."
+  version: "0.1.5"
+workflow:
+  graph:
+    nodes:
+      - id: "start"
+        type: "start"
+        title: "User Question Input"
+      - id: "kb_retrieve"
+        type: "knowledge-retrieval"
+        title: "Hybrid OpenSearch / Dify KB Retrieval"
+        top_k: 4
+        score_threshold: 0.65
+      - id: "confidence_gate"
+        type: "if-else"
+        title: "Citation Confidence Gate (>= 0.65)"
+      - id: "llm_answer"
+        type: "llm"
+        title: "Bedrock Claude Grounded Synthesis"
+        model: "anthropic.claude-3-5-sonnet"
+      - id: "hitl_escalate"
+        type: "http-request"
+        title: "Trigger n8n Human Escalation Webhook"
+        url: "${N8N_ESCALATION_WEBHOOK_URL}"
+      - id: "answer"
+        type: "answer"
+        title: "Return Cited Response"
+    edges:
+      - source: "start"
+        target: "kb_retrieve"
+      - source: "kb_retrieve"
+        target: "confidence_gate"
+      - source: "confidence_gate"
+        target: "llm_answer"
+      - source: "confidence_gate"
+        target: "hitl_escalate"
+      - source: "llm_answer"
+        target: "answer"

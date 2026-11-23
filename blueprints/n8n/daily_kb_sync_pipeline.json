@@ -1,0 +1,52 @@
+{
+  "name": "Nightly Knowledge-Base Sync (S3 -> Dify Dataset)",
+  "active": false,
+  "settings": {
+    "timezone": "Asia/Tokyo",
+    "saveExecutionProgress": true
+  },
+  "nodes": [
+    {
+      "id": "1",
+      "name": "Daily 02:00 JST Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "parameters": {
+        "rule": {
+          "interval": [{"field": "cronExpression", "expression": "0 2 * * *"}]
+        }
+      }
+    },
+    {
+      "id": "2",
+      "name": "List Updated S3 Policy Docs",
+      "type": "n8n-nodes-base.awsS3",
+      "typeVersion": 1,
+      "position": [520, 300],
+      "parameters": {
+        "operation": "getAll",
+        "bucketName": "={{$env.KB_S3_BUCKET}}"
+      }
+    },
+    {
+      "id": "3",
+      "name": "Upsert Document to Dify Knowledge Base",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [800, 300],
+      "parameters": {
+        "url": "={{$env.DIFY_API_BASE_URL}}/v1/datasets/{{$env.DIFY_DATASET_ID}}/document/create-by-text",
+        "method": "POST"
+      }
+    }
+  ],
+  "connections": {
+    "Daily 02:00 JST Schedule": {
+      "main": [[{"node": "List Updated S3 Policy Docs", "type": "main", "index": 0}]]
+    },
+    "List Updated S3 Policy Docs": {
+      "main": [[{"node": "Upsert Document to Dify Knowledge Base", "type": "main", "index": 0}]]
+    }
+  }
+}

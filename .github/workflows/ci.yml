@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  blueprint-validation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install lint & test tools
+        run: pip install pytest ruff
+      - name: Lint with Ruff
+        run: ruff check scripts tests
+      - name: Run Blueprint Validation Tests
+        run: pytest -v
+      - name: Validate All Dify DSL & n8n Blueprints
+        run: python scripts/validate_blueprints.py blueprints
+
+  terraform:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/terraform
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.8"
+      - name: Terraform Format & Validate
+        run: |
+          terraform fmt -check -recursive
+          terraform init -backend=false
+          terraform validate

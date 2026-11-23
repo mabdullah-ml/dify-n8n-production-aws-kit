@@ -1,0 +1,71 @@
+{
+  "name": "Enterprise RAG Ticket Triage & Escalation",
+  "active": false,
+  "settings": {
+    "timezone": "Asia/Tokyo",
+    "saveExecutionProgress": true
+  },
+  "nodes": [
+    {
+      "id": "1",
+      "name": "Support Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "parameters": {
+        "path": "rag-ticket-triage",
+        "httpMethod": "POST"
+      }
+    },
+    {
+      "id": "2",
+      "name": "Query Dify RAG Chatflow",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [500, 300],
+      "parameters": {
+        "url": "={{$env.DIFY_API_BASE_URL}}/v1/chat-messages",
+        "method": "POST"
+      }
+    },
+    {
+      "id": "3",
+      "name": "Route High-Severity Escalations",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [760, 300],
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.severity}}",
+              "operation": "equals",
+              "value2": "HIGH"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "4",
+      "name": "Notify On-Call Slack Channel",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [1040, 220],
+      "parameters": {
+        "channel": "#ai-ops-escalations"
+      }
+    }
+  ],
+  "connections": {
+    "Support Webhook Trigger": {
+      "main": [[{"node": "Query Dify RAG Chatflow", "type": "main", "index": 0}]]
+    },
+    "Query Dify RAG Chatflow": {
+      "main": [[{"node": "Route High-Severity Escalations", "type": "main", "index": 0}]]
+    },
+    "Route High-Severity Escalations": {
+      "main": [[{"node": "Notify On-Call Slack Channel", "type": "main", "index": 0}]]
+    }
+  }
+}
